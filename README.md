@@ -1,8 +1,8 @@
 # 简易网站导航页面
 
 这是一个用大模型生成的，美观实用的网站导航页面，支持内外网环境自动切换，可以根据配置文件自定义网站分类和样式。
-![PC端预览图](https://raw.githubusercontent.com/rainow/simple_nav/main/pc-preview.png)
-![移动端预览图](https://raw.githubusercontent.com/rainow/simple_nav/main/mobile-preview.png)
+<img src="https://raw.githubusercontent.com/rainow/simple_nav/main/pc-preview.png" height="400" alt="PC端预览">
+<img src="https://raw.githubusercontent.com/rainow/simple_nav/main/mobile-preview.png" height="400" alt="移动端预览">
 
 本项目代码和下面说明的文案都由大模型生成。
 
