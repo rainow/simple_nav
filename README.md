@@ -1,8 +1,14 @@
 # 简易网站导航页面
 
 这是一个用大模型生成的，美观实用的网站导航页面，支持内外网环境自动切换，可以根据配置文件自定义网站分类和样式。
+发起这个项目的原因是，刚刚在NAS上装了个Lucky，开了一大堆端口，搞不清楚谁是谁了，就废物利用，把Lucky反向代理的默认规则转到这个静态页面来做导航。
+
+页面预览：
 <img src="https://raw.githubusercontent.com/rainow/simple_nav/main/pc-preview.png" height="400" alt="PC端预览">
 <img src="https://raw.githubusercontent.com/rainow/simple_nav/main/mobile-preview.png" height="400" alt="移动端预览">
+
+Lucky配置截图：
+<img src="https://raw.githubusercontent.com/rainow/simple_nav/main/lucky-config.png" height="400" alt="Lucky内部配置截图">
 
 本项目代码和下面说明的文案都由大模型生成。
 
