@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>网站导航</title>
+    <link rel="icon" href="./favicon.png" type="image/png">
+    <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+    <div class="container">
+        <canvas id="tsparticles"></canvas>
+        <div id="content" class="content">
+            <header>
+                <div class="search-container">
+                    <form id="search-form" class="search-form" action="" method="get" target="_blank">
+                        <div class="search-input-container">
+                            <input type="text" id="search-input" class="search-input" placeholder="输入搜索内容..." name="q">
+                            <div class="search-engines">
+                                <label class="search-engine-option">
+                                    <input type="radio" name="search-engine" value="baidu" checked>
+                                    <span>百度</span>
+                                </label>
+                                <label class="search-engine-option">
+                                    <input type="radio" name="search-engine" value="google">
+                                    <span>谷歌</span>
+                                </label>
+                            </div>
+                            <button type="submit" class="search-button">搜索</button>
+                        </div>
+                    </form>
+                </div>
+            </header>
+            
+            <div id="nav-container" class="categories-container">
+                <!-- 导航内容将通过JavaScript动态生成 -->
+            </div>
+        </div>
+    </div>
+
+    <!-- 引入配置文件 -->
+    <script src="config.js"></script>
+    
+    <script>
+        // 随机图标字符数组
+        const iconChars = ['🌐', '🔍', '📝', '📚', '🎮', '🎬', '🎵', '📱', '💻', '🛠️', '🔧', '📊', '📈', '🏠', '🌟'];
+        
+        // 获取随机图标字符
+        function getRandomIconChar() {
+            return iconChars[Math.floor(Math.random() * iconChars.length)];
+        }
+        
+        // 按拼音排序函数
+        function sortByPinyin(a, b) {
+            return a.name.localeCompare(b.name, 'zh-CN');
+        }
+
+        function initTsParticles(){
+            // 初始化粒子系统
+            (async () => {
+                await loadBigCirclesPreset(tsParticles);
+            
+                // 根据设备类型确定粒子数量
+                const isMobile = window.innerWidth <= 768;
+                const particleCount = isMobile ? 10 : 30;
+
+                await tsParticles.load({
+                    id: "tsparticles",
+                    options: {
+                        preset: "bigCircles",
+                        particles: {
+                            move: {
+                                speed: 0.5, // 调整粒子移动速度
+                                outModes: {
+                                    default: "bounce"
+                                },
+                                // 确保粒子初始位置随机分布
+                                random: true,
+                                enable: true
+                            },
+                            number: {
+                                value: particleCount // 根据设备类型设置粒子数量
+                            },
+                            size: {
+                                value: { min: 50, max: 150 } // 将圆形尺寸缩小一半
+                            },
+                            opacity: {
+                                value: { min: 0.1, max: 0.5 } // 保持不透明度
+                            }
+                        },
+                        background: {
+                            color: "#f5f5f5" // 保持与body背景色一致
+                        }
+                    }
+                });
+
+                // 获取粒子容器并手动分散粒子
+                setTimeout(() => {
+                    const container = tsParticles.domItem(0);
+                    if (container && container.particles && container.particles.array) {
+                        const width = window.innerWidth;
+                        const height = window.innerHeight;
+
+                        container.particles.array.forEach(particle => {
+                            // 随机设置粒子位置
+                            particle.position.x = Math.random() * width;
+                            particle.position.y = Math.random() * height;
+                        });
+                    }
+                }, 100);
+            })();
+
+            var tsParticlesDiv = document.getElementById("tsparticles");
+            if (tsParticlesDiv) {
+                tsParticlesDiv.style.zIndex = "-1";
+            }
+            var contentDiv = document.getElementById("content");
+            if (contentDiv) {
+                contentDiv.style.zIndex = "1";
+                contentDiv.style.position = "relative";
+            }
+        }
+        
+        // 处理搜索表单提交
+        function setupSearchForm() {
+            const searchForm = document.getElementById('search-form');
+            const searchInput = document.getElementById('search-input');
+
+            searchForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+
+                const searchEngine = document.querySelector('input[name="search-engine"]:checked').value;
+                const searchTerm = searchInput.value.trim();
+
+                if (searchTerm) {
+                    let searchUrl = '';
+
+                    if (searchEngine === 'baidu') {
+                        searchUrl = `https://www.baidu.com/s?wd=${encodeURIComponent(searchTerm)}`;
+                    } else if (searchEngine === 'google') {
+                        searchUrl = `https://www.google.com/search?q=${encodeURIComponent(searchTerm)}`;
+                    }
+
+                    window.open(searchUrl, '_blank');
+                } else {
+                    alert('搜索词为空');
+                }
+            });
+
+            // 添加全局键盘事件监听，按下Enter键时发起搜索
+            document.addEventListener('keydown', function(e) {
+                // 如果按下的是Enter键，并且当前没有在输入框中
+                if (e.key === 'Enter' && document.activeElement !== searchInput) {
+                    // 聚焦到搜索框
+                    searchInput.focus();
+
+                    // 如果搜索框中有内容，则提交表单
+                    if (searchInput.value.trim()) {
+                        searchForm.dispatchEvent(new Event('submit'));
+                    } else {
+                        alert('搜索词为空');
+                    }
+                }
+            });
+        }
+
+        // 处理并显示导航数据
+        function processNavData() {
+            // 按分类分组
+            const categoryMap = {};
+            
+            // 检查当前是否在内网环境
+            const currentUrl = window.location.href;
+            const isInternalNetwork = internalNetworkPatterns && internalNetworkPatterns.some(pattern => currentUrl.includes(pattern));
+
+            navConfig.forEach(site => {
+                const name = site[0];
+                const url = site[1];
+                const internalUrl = site[2] || "";
+                const category = site[3] || "其他"; // 如果没有分类，默认为"其他"
+                const order = site[4];
+                const icon = site[5] || "";
+
+                // 根据当前环境选择合适的URL
+                let actualUrl = url;
+                if (isInternalNetwork && internalUrl) {
+                    actualUrl = internalUrl;
+                }
+
+                if (!categoryMap[category]) {
+                    categoryMap[category] = [];
+                }
+
+                // 判断是否为内网URL
+                const isInternalUrl = internalNetworkPatterns && internalNetworkPatterns.some(pattern => actualUrl.includes(pattern));
+
+                categoryMap[category].push({
+                    name,
+                    url: actualUrl,
+                    originalUrl: url,
+                    internalUrl,
+                    category,
+                    order,
+                    icon,
+                    isInternalUrl
+                });
+            });
+            
+            // 获取导航容器
+            const navContainer = document.getElementById('nav-container');
+            
+            // 遍历分类
+            for (const category in categoryMap) {
+                const sites = categoryMap[category];
+                
+                // 分类内排序：先按order排序，没有order的按拼音排序
+                const sitesWithOrder = sites.filter(site => site.order !== undefined && site.order !== null && site.order !== "");
+                const sitesWithoutOrder = sites.filter(site => site.order === undefined || site.order === null || site.order === "");
+                
+                // 有序号的按序号排序
+                sitesWithOrder.sort((a, b) => a.order - b.order);
+                
+                // 无序号的按拼音排序
+                sitesWithoutOrder.sort(sortByPinyin);
+                
+                // 合并排序后的数组
+                const sortedSites = [...sitesWithOrder, ...sitesWithoutOrder];
+                
+                // 创建分类区域
+                const categorySection = document.createElement('div');
+                categorySection.className = 'category-section';
+                
+                // 创建分类标题
+                const categoryTitle = document.createElement('h2');
+                categoryTitle.className = 'category-title';
+                categoryTitle.textContent = category;
+                categorySection.appendChild(categoryTitle);
+                
+                // 创建网站网格
+                const siteGrid = document.createElement('div');
+                siteGrid.className = 'site-grid';
+                
+                // 添加网站卡片
+                sortedSites.forEach(site => {
+                    // 创建网站链接
+                    const siteLink = document.createElement('a');
+                    siteLink.className = 'site-card';
+                    siteLink.href = site.url;
+                    siteLink.target = '_blank';
+                    
+                    // 根据URL类型设置样式
+                    const hostname = new URL(site.url).hostname;
+                    if (site.isInternalUrl) {
+                        // 内网地址使用默认样式
+                    } else if (vip1Domains && vip1Domains.some(domain => hostname.includes(domain))) {
+                        siteLink.classList.add('vip1');
+                    } else if (vip2Domains && vip2Domains.some(domain => hostname.includes(domain))) {
+                        siteLink.classList.add('vip2');
+                    } else {
+                        siteLink.classList.add('external');
+                    }
+
+                    // 创建网站图标
+                    if (site.icon && site.icon.trim() !== '') {
+                        // 有图标URL
+                        const iconImg = document.createElement('img');
+                        iconImg.className = 'site-icon';
+                        iconImg.src = site.icon;
+                        iconImg.alt = site.name;
+                        iconImg.onerror = function() {
+                            // 图标加载失败时显示随机字符
+                            this.outerHTML = `<div class="site-icon">${getRandomIconChar()}</div>`;
+                        };
+                        siteLink.appendChild(iconImg);
+                    } else {
+                        // 没有图标，尝试获取网站的favicon
+                        const siteUrl = new URL(site.url);
+                        const origin = siteUrl.origin;
+
+                        // 创建图标元素
+                        const iconImg = document.createElement('img');
+                        iconImg.className = 'site-icon';
+                        iconImg.alt = site.name;
+
+                        // 尝试多种常见的favicon路径
+                        const tryFaviconPaths = [
+                            `${origin}/favicon.png`,
+                            `${origin}/favicon.ico`
+                        ];
+
+                        // 尝试加载第一个路径
+                        iconImg.src = tryFaviconPaths[0];
+                        let currentPathIndex = 0;
+
+                        // 当图标加载失败时，尝试下一个路径
+                        iconImg.onerror = function() {
+                            currentPathIndex++;
+                            // 如果还有路径可以尝试
+                            if (currentPathIndex < tryFaviconPaths.length) {
+                                this.src = tryFaviconPaths[currentPathIndex];
+                            } else {
+                                // 所有路径都失败，显示随机字符
+                                this.outerHTML = `<div class="site-icon">${getRandomIconChar()}</div>`;
+                            }
+                        };
+
+                        siteLink.appendChild(iconImg);
+                    }
+                    
+                    // 创建网站名称
+                    const siteName = document.createElement('div');
+                    siteName.className = 'site-name';
+                    siteName.textContent = site.name;
+                    siteLink.appendChild(siteName);
+                    
+                    // 创建网站URL
+                    const siteUrl = document.createElement('div');
+                    siteUrl.className = 'site-url';
+                    siteUrl.textContent = new URL(site.url).hostname;
+                    siteLink.appendChild(siteUrl);
+                    
+                    // 添加到网格
+                    siteGrid.appendChild(siteLink);
+                });
+                
+                // 添加网格到分类区域
+                categorySection.appendChild(siteGrid);
+                
+                // 添加分类区域到导航容器
+                navContainer.appendChild(categorySection);
+            }
+
+            setupSearchForm();
+            initTsParticles();
+        }
+        
+        // 页面加载完成后处理导航数据
+        document.addEventListener('DOMContentLoaded', processNavData);
+    </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/tsparticles@2/tsparticles.bundle.min.js"></script>
+    <script>
+        // 添加大圆预设的定义，这样我们可以自定义它
+        async function loadBigCirclesPreset(engine) {
+            await engine.addPreset("bigCircles", {
+                particles: {
+                    number: {
+                        value: 15 // 默认粒子数量，将在加载时根据设备类型覆盖
+                    },
+                    color: {
+                        value: ["#3998D0", "#2EB6AF", "#A9BD33", "#FEC73B", "#F89930", "#F45623", "#D62E32", "#EB586E", "#9952CF"],
+                    },
+                    shape: {
+                        type: "circle",
+                    },
+                    opacity: {
+                        value: { min: 0.1, max: 0.5 }, // 保持不透明度
+                    },
+                    size: {
+                        value: { min: 50, max: 150 }, // 将圆形尺寸缩小一半
+                    },
+                    move: {
+                        enable: true,
+                        speed: 0.5, // 调整移动速度
+                        direction: "none",
+                        random: true,
+                        straight: false,
+                        outModes: {
+                            default: "bounce",
+                        },
+                        attract: {
+                            enable: false,
+                            distance: 200,
+                            duration: 0.4,
+                        }
+                    }
+                },
+                interactivity: {
+                    detectsOn: "canvas",
+                    events: {
+                        resize: true,
+                    },
+                },
+                detectRetina: true,
+            });
+        }
+    </script>
+</body>
+</html>
